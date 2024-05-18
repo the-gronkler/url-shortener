@@ -1,4 +1,4 @@
-package pl.edu.pjwstk.s28259.tpo10.model;
+package pl.edu.pjwstk.s28259.tpo10.dto;
 
 public class LinkRequest {
     private String name;

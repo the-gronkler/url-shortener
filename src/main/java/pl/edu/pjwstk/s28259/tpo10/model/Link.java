@@ -2,36 +2,34 @@ package pl.edu.pjwstk.s28259.tpo10.model;
 
 import jakarta.persistence.*;
 
-import java.util.Random;
-
 @Entity
-public class Url {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id")
-    private Integer id;
-
-    @Column(name = "password")
-    private String password;
-    @Column(name = "name")
-    private String name;
+public class Link {
     /**
      * unique part of the short url, without the prefix
      */
-    @Column(name = "shortUrlId")
-    private String shortUrlId;
+    @Id
+    @Column(name = "id")
+    private String id;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "name")
+    private String name;
+
     @Column(name = "targetUrl")
     private String targetUrl;
+
     @Column(name = "visits")
     private int visits;
 
 
-    public Url(){}
-    public Url(String password, String name, String targetUrl, String shortUrlId){
+    public Link(){}
+    protected Link(String id, String password, String name, String targetUrl){
 
+        this.id = id;
         this.password = password;
         this.name = name;
-        this.shortUrlId = shortUrlId;
         this.targetUrl = targetUrl;
         this.visits = 0;
     }
@@ -47,11 +45,16 @@ public class Url {
         return this.password.equals(password);
     }
 
-    public Integer getId() {
+
+
+
+
+
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    protected void setId(String id) {
         this.id = id;
     }
 
@@ -69,14 +72,6 @@ public class Url {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getShortUrlId() {
-        return shortUrlId;
-    }
-
-    public void setShortUrlId(String shortUrlId) {
-        this.shortUrlId = shortUrlId;
     }
 
     public String getTargetUrl() {
@@ -97,11 +92,11 @@ public class Url {
 
     @Override
     public String toString() {
-        return "Url{" +
+        return "Link{" +
                 "id=" + id +
                 ", password='" + password + '\'' +
                 ", name='" + name + '\'' +
-                ", shortUrlId='" + shortUrlId + '\'' +
+                ", id='" + id + '\'' +
                 ", targetUrl='" + targetUrl + '\'' +
                 ", visits=" + visits +
                 '}';

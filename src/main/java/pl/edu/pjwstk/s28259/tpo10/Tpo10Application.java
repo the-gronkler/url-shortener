@@ -3,7 +3,7 @@ package pl.edu.pjwstk.s28259.tpo10;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import pl.edu.pjwstk.s28259.tpo10.model.Url;
+import pl.edu.pjwstk.s28259.tpo10.model.LinkRepository;
 
 @SpringBootApplication
 public class Tpo10Application {
@@ -15,9 +15,9 @@ public class Tpo10Application {
 	}
 
 	public static void dbTest(ConfigurableApplicationContext context) {
-		UrlRepository urlRepository = context.getBean(UrlRepository.class);
+		LinkRepository linkRepository = context.getBean(LinkRepository.class);
 		System.out.println("All urls in db at startup:");
-		urlRepository.findAll().forEach(System.out::println);
+		linkRepository.findAll().forEach(System.out::println);
 	}
 
 }

@@ -1,15 +1,8 @@
-package pl.edu.pjwstk.s28259.tpo10.model;
+package pl.edu.pjwstk.s28259.tpo10.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 
-public class UrlDto {
-    /**
-     * unique part of the short url, without the prefix. shortUrlId field in Url class
-     */
+public class LinkDto {
     @JsonProperty
     private String id;
 
@@ -19,9 +12,8 @@ public class UrlDto {
     @JsonProperty
     private String targetUrl;
 
-
     /**
-     * id/shortUrlId with the prefix. Actual usable url for the end user
+     * id with the prefix. Actual usable url for the end user
      */
     @JsonProperty
     private String redirectUrl;
@@ -29,9 +21,9 @@ public class UrlDto {
     @JsonProperty
     private int visits;
 
-    public UrlDto(){}
+    public LinkDto(){}
 
-    public UrlDto(String id, String name, String targetUrl, String redirectUrl, int visits) {
+    public LinkDto(String id, String name, String targetUrl, String redirectUrl, int visits) {
         this.id = id;
         this.name = name;
         this.targetUrl = targetUrl;

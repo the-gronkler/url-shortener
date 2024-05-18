@@ -6,34 +6,37 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import pl.edu.pjwstk.s28259.tpo10.UrlManagerService;
-import pl.edu.pjwstk.s28259.tpo10.UrlRepository;
-import pl.edu.pjwstk.s28259.tpo10.model.LinkRequest;
-import pl.edu.pjwstk.s28259.tpo10.model.Url;
+import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
+import pl.edu.pjwstk.s28259.tpo10.model.Link;
+import pl.edu.pjwstk.s28259.tpo10.model.LinkService;
 
 import java.net.URI;
 import java.util.Optional;
 
 @RestController
 @RequestMapping(
-        path = "/api/links"
-//        , produces = { MediaType.APPLICATION_JSON_VALUE,
-//                MediaType.APPLICATION_XML_VALUE,
-//                MediaType.TEXT_PLAIN_VALUE }
+        path = "/api/"
+        , produces = { MediaType.APPLICATION_JSON_VALUE}
 )
 public class WebApiController {
-    private final UrlManagerService urlManagerService;
-    private final UrlRepository urlRepository;
+    private static final ResponseEntity<?>
+            NO_SUCH_LINK = ResponseEntity.status(HttpStatus.NOT_FOUND).build(),
+            WRONG_PASSWORD = ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .header("Reason", "wrong password")
+                    .build(),
+            LINK_HAS_NO_PASSWORD =  ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .header("Reason", "This link is not password protected: cannot edit")
+                    .build();
 
-    public WebApiController(UrlManagerService urlManagerService, UrlRepository urlRepository) {
-        this.urlManagerService = urlManagerService;
-        this.urlRepository = urlRepository;
+    private final LinkService linkService;
+
+    public WebApiController(LinkService linkService) {
+        this.linkService = linkService;
     }
 
-    @PostMapping(value = "",
-            produces = {
-                    MediaType.APPLICATION_JSON_VALUE
-            })
+    @PostMapping("/links")
     public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest,
                                      HttpServletRequest request )
     {
@@ -45,78 +48,77 @@ public class WebApiController {
                     .body("Invalid data: name and targetUrl parameters must be provided");
 
 
-        Url newUrl = urlManagerService.createUrlObject(password, name, targetUrl);
-        urlRepository.save(newUrl);
+        Link newLink = linkService.create(password, name, targetUrl);
+        linkService.save(newLink);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(newUrl.getShortUrlId())
+                .buildAndExpand(newLink.getId())
                 .toUri();
 
         return ResponseEntity
                 .created(location)
-                .body(urlManagerService.toDto(newUrl));
+                .body(linkService.toDto(newLink));
     }
 
-    @GetMapping(value = "/{id}",
-            produces = {
-                    MediaType.APPLICATION_JSON_VALUE
-            })
+    @GetMapping(value = "/links/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
-        Url url = urlRepository
-                .findUrlByShortUrlId(id)
+        Link link = linkService
+                .findLinkById(id)
                 .orElse(null);
 
-        if (url == null)
+        if (link == null)
             return ResponseEntity.notFound().build();
 
-        return ResponseEntity.ok(urlManagerService.toDto(url));
+        return ResponseEntity.ok(linkService.toDto(link));
     }
 
 
-    @PatchMapping(value = "/{id}")
+    @PatchMapping(value = "/links/{id}")
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody LinkRequest linkRequest) {
-        Optional<Url> optionalUrl = urlRepository.findUrlByShortUrlId(id);
+        Optional<Link> optionalUrl = linkService.findLinkById(id);
 
-        // no such link
+
         if(optionalUrl.isEmpty())
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return NO_SUCH_LINK;
 
-        Url url = optionalUrl.get();
-        String  password = linkRequest.getPassword(),
-                name = linkRequest.getName(),
+        Link link = optionalUrl.get();
+
+        if(!link.hasPassword())
+            return LINK_HAS_NO_PASSWORD;
+        if (!link.isPasswordCorrect(linkRequest.getPassword()))
+            return WRONG_PASSWORD;
+
+        String  name = linkRequest.getName(),
                 targetUrl = linkRequest.getTargetUrl();
-
-        // link has no password
-        if(!url.hasPassword())
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .header("Reason", "This link is not password protected: cannot edit")
-                    .build();
-
-        // wrong password
-        if (!url.isPasswordCorrect(password))
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .header("Reason", "wrong password")
-                    .build();
-
-
-
         if (name != null)
-            url.setName(linkRequest.getName());
-
+            link.setName(name);
         if (targetUrl != null)
-            url.setTargetUrl(linkRequest.getTargetUrl());
+            link.setTargetUrl(targetUrl);
 
-
-        urlRepository.save(url);
+        linkService.save(link);
         return ResponseEntity.noContent().build();
-
     }
 
+    @DeleteMapping(value = "/links/{id}")
+    public ResponseEntity<?> deleteLink(@PathVariable String id,
+                                        @RequestParam String password) {
+        Optional<Link> optionalUrl = linkService.findLinkById(id);
 
 
+        if(optionalUrl.isEmpty())
+            return NO_SUCH_LINK;
+
+        Link link = optionalUrl.get();
+
+        if(!link.hasPassword())
+            return LINK_HAS_NO_PASSWORD;
+        if (!link.isPasswordCorrect(password))
+            return WRONG_PASSWORD;
+
+        linkService.delete(link);
+        return ResponseEntity.noContent().build();
+    }
 }
 
