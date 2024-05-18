@@ -43,6 +43,9 @@ public class Url {
     public boolean hasPassword(){
         return !this.password.isEmpty();
     }
+    public boolean isPasswordCorrect(String password){
+        return this.password.equals(password);
+    }
 
     public Integer getId() {
         return id;

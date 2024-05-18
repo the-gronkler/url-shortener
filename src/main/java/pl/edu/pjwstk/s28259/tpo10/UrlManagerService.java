@@ -35,12 +35,19 @@ public class UrlManagerService {
         return new Url(password, name, targetUrl, shortUrlId);
     }
 
+    private String getRedirectUrl(String shortUrlId){
+        return prefix + shortUrlId;
+    }
+
+    public String getRedirectUrl(Url url){
+        return getRedirectUrl(url.getShortUrlId());
+    }
     public UrlDto toDto(Url url){
         return new UrlDto(
                 url.getShortUrlId(),
                 url.getName(),
                 url.getTargetUrl(),
-                prefix + url.getShortUrlId(),
+                getRedirectUrl(url.getShortUrlId()),
                 url.getVisits()
         );
     }
