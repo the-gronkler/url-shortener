@@ -1,11 +1,11 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import pl.edu.pjwstk.s28259.tpo10.dto.LinkDto;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
 import pl.edu.pjwstk.s28259.tpo10.model.Link;
 import pl.edu.pjwstk.s28259.tpo10.model.LinkService;
@@ -29,16 +29,37 @@ public class WebApiController {
                     .status(HttpStatus.FORBIDDEN)
                     .header("Reason", "This link is not password protected: cannot edit")
                     .build();
+    
+   
 
     private final LinkService linkService;
-
     public WebApiController(LinkService linkService) {
         this.linkService = linkService;
     }
 
+    private ResponseEntity<?> redirect(Link link) {
+        return ResponseEntity
+                .status(HttpStatus.FOUND)
+                .location(URI.create(link.getTargetUrl()))
+                .build();
+    }
+
+    @GetMapping(value = "/red/{id}")
+    public ResponseEntity<?> getLinkRedirect(@PathVariable String id) {
+        Optional<Link> optionalLink = linkService.findLinkById(id);
+        if (optionalLink.isPresent()) {
+            Link link = optionalLink.get();
+
+            link.incrementVisits();
+            linkService.save(link);
+
+            return redirect(link);
+        }
+        else return NO_SUCH_LINK;
+    }
+    
     @PostMapping("/links")
-    public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest,
-                                     HttpServletRequest request )
+    public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
     {
         String  password = linkRequest.getPassword(),
                 name = linkRequest.getName(),
@@ -63,35 +84,32 @@ public class WebApiController {
 
     @GetMapping(value = "/links/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
-        Link link = linkService
-                .findLinkById(id)
-                .orElse(null);
+        Optional<Link> optionalLink = linkService.findLinkById(id);
 
-        if (link == null)
-            return ResponseEntity.notFound().build();
-
-        return ResponseEntity.ok(linkService.toDto(link));
+        if(optionalLink.isEmpty())
+            return NO_SUCH_LINK;
+        
+        LinkDto linkDto = linkService.toDto(optionalLink.get());
+        return ResponseEntity.ok().body(linkDto);
     }
 
 
     @PatchMapping(value = "/links/{id}")
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody LinkRequest linkRequest) {
-        Optional<Link> optionalUrl = linkService.findLinkById(id);
-
-
-        if(optionalUrl.isEmpty())
+        Optional<Link> optionalLink = linkService.findLinkById(id);
+        if(optionalLink.isEmpty())
             return NO_SUCH_LINK;
 
-        Link link = optionalUrl.get();
-
+        Link link = optionalLink.get();
         if(!link.hasPassword())
             return LINK_HAS_NO_PASSWORD;
         if (!link.isPasswordCorrect(linkRequest.getPassword()))
             return WRONG_PASSWORD;
 
-        String  name = linkRequest.getName(),
-                targetUrl = linkRequest.getTargetUrl();
+        String name = linkRequest.getName();
+        String targetUrl = linkRequest.getTargetUrl();
+
         if (name != null)
             link.setName(name);
         if (targetUrl != null)
@@ -104,13 +122,13 @@ public class WebApiController {
     @DeleteMapping(value = "/links/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable String id,
                                         @RequestParam String password) {
-        Optional<Link> optionalUrl = linkService.findLinkById(id);
+        Optional<Link> optionalLink = linkService.findLinkById(id);
 
 
-        if(optionalUrl.isEmpty())
+        if(optionalLink.isEmpty())
             return NO_SUCH_LINK;
 
-        Link link = optionalUrl.get();
+        Link link = optionalLink.get();
 
         if(!link.hasPassword())
             return LINK_HAS_NO_PASSWORD;
