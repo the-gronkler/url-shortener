@@ -56,10 +56,22 @@ public class ApiController {
                 .body(urlManagerService.toDto(newUrl));
     }
 
-    @GetMapping(value = "/links",
+    @GetMapping(value = "/links/{id}",
             produces = {
                     MediaType.APPLICATION_JSON_VALUE
             })
+    public ResponseEntity<?> getLink(@PathVariable String id){
+
+
+        Url url = urlRepository
+                .findUrlByShortUrlId(id)
+                .orElse(null);
+
+        if (url == null)
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(urlManagerService.toDto(url));
+    }
 
 }
 

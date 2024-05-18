@@ -16,13 +16,7 @@ public class Tpo10Application {
 
 	public static void dbTest(ConfigurableApplicationContext context) {
 		UrlRepository urlRepository = context.getBean(UrlRepository.class);
-		Url url = new Url();
-//		urlRepository.save(url);
-
-		System.out.println("sus");
-
-		urlRepository.findAll().forEach(System.out::println);
-		urlRepository.deleteAll();
+		System.out.println("All urls in db at startup:");
 		urlRepository.findAll().forEach(System.out::println);
 	}
 
