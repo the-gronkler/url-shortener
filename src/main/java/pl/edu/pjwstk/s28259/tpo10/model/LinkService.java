@@ -3,7 +3,7 @@ package pl.edu.pjwstk.s28259.tpo10.model;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import pl.edu.pjwstk.s28259.tpo10.dto.LinkDto;
+import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
 
 import java.security.SecureRandom;
 import java.util.List;
@@ -14,7 +14,7 @@ public class LinkService {
     public final static char[] POSSIBLE_CHARS =
             "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM".toCharArray();
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static final int LENGTH = 10;
+    private static final int ID_LENGTH = 10;
 
     @Value("${app.redirectPrefix}")
     private String prefix;
@@ -38,8 +38,8 @@ public class LinkService {
         return prefix + shortUrlId;
     }
 
-    public LinkDto toDto(Link link){
-        return new LinkDto(
+    public LinkResponse toResponseDto(Link link){
+        return new LinkResponse(
                 link.getId(),
                 link.getName(),
                 link.getTargetUrl(),
@@ -50,8 +50,8 @@ public class LinkService {
 
 
     private static String generateRandomId(){
-        StringBuilder sb = new StringBuilder(LinkService.LENGTH);
-        for(int i = 0; i < LinkService.LENGTH; i++)
+        StringBuilder sb = new StringBuilder(LinkService.ID_LENGTH);
+        for(int i = 0; i < LinkService.ID_LENGTH; i++)
             sb.append(POSSIBLE_CHARS[RANDOM.nextInt(0, POSSIBLE_CHARS.length)]);
 
         return sb.toString();

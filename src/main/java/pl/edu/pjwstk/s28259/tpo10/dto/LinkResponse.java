@@ -2,7 +2,7 @@ package pl.edu.pjwstk.s28259.tpo10.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class LinkDto {
+public class LinkResponse {
     @JsonProperty
     private String id;
 
@@ -21,9 +21,9 @@ public class LinkDto {
     @JsonProperty
     private int visits;
 
-    public LinkDto(){}
+    public LinkResponse(){}
 
-    public LinkDto(String id, String name, String targetUrl, String redirectUrl, int visits) {
+    public LinkResponse(String id, String name, String targetUrl, String redirectUrl, int visits) {
         this.id = id;
         this.name = name;
         this.targetUrl = targetUrl;

@@ -5,7 +5,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import pl.edu.pjwstk.s28259.tpo10.dto.LinkDto;
+import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
 import pl.edu.pjwstk.s28259.tpo10.model.Link;
 import pl.edu.pjwstk.s28259.tpo10.model.LinkService;
@@ -79,7 +79,7 @@ public class WebApiController {
 
         return ResponseEntity
                 .created(location)
-                .body(linkService.toDto(newLink));
+                .body(linkService.toResponseDto(newLink));
     }
 
     @GetMapping(value = "/links/{id}")
@@ -89,8 +89,8 @@ public class WebApiController {
         if(optionalLink.isEmpty())
             return NO_SUCH_LINK;
         
-        LinkDto linkDto = linkService.toDto(optionalLink.get());
-        return ResponseEntity.ok().body(linkDto);
+        LinkResponse linkResponse = linkService.toResponseDto(optionalLink.get());
+        return ResponseEntity.ok().body(linkResponse);
     }
 
 
