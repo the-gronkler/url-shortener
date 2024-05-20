@@ -3,7 +3,7 @@ package pl.edu.pjwstk.s28259.tpo10;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import pl.edu.pjwstk.s28259.tpo10.model.LinkRepository;
+import pl.edu.pjwstk.s28259.tpo10.repository.LinkRepository;
 
 @SpringBootApplication
 public class Tpo10Application {

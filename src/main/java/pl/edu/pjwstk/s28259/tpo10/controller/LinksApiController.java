@@ -1,5 +1,6 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -8,57 +9,49 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
 import pl.edu.pjwstk.s28259.tpo10.model.Link;
-import pl.edu.pjwstk.s28259.tpo10.model.LinkService;
+import pl.edu.pjwstk.s28259.tpo10.service.LinkService;
 
 import java.net.URI;
 import java.util.Optional;
 
 @RestController
 @RequestMapping(
-        path = "/api/"
+        path = "${app.linksPath}"
         , produces = { MediaType.APPLICATION_JSON_VALUE}
 )
-public class WebApiController {
-    private static final ResponseEntity<?>
-            NO_SUCH_LINK = ResponseEntity.status(HttpStatus.NOT_FOUND).build(),
-            WRONG_PASSWORD = ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .header("Reason", "wrong password")
-                    .build(),
-            LINK_HAS_NO_PASSWORD =  ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .header("Reason", "This link is not password protected: cannot edit")
-                    .build();
-    
-   
+public class LinksApiController {
+    @Value("${app.linksPath}")
+    private String linksPath;
 
     private final LinkService linkService;
-    public WebApiController(LinkService linkService) {
+
+    public LinksApiController(LinkService linkService) {
         this.linkService = linkService;
     }
-
-    private ResponseEntity<?> redirect(Link link) {
+    private ResponseEntity<?> noSuchLinkResponse() {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+    private ResponseEntity<?> wrongPasswordResponse() {
         return ResponseEntity
-                .status(HttpStatus.FOUND)
-                .location(URI.create(link.getTargetUrl()))
+                .status(HttpStatus.FORBIDDEN)
+                .header("Reason", "wrong password")
+                .build();
+    }
+    private ResponseEntity<?> linkHasNoPasswordResponse() {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .header("Reason", "This link is not password protected: cannot edit")
                 .build();
     }
 
-    @GetMapping(value = "/red/{id}")
-    public ResponseEntity<?> getLinkRedirect(@PathVariable String id) {
-        Optional<Link> optionalLink = linkService.findLinkById(id);
-        if (optionalLink.isPresent()) {
-            Link link = optionalLink.get();
-
-            link.incrementVisits();
-            linkService.save(link);
-
-            return redirect(link);
-        }
-        else return NO_SUCH_LINK;
+    private URI getLocation(Link link) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path(linksPath + "/{id}")
+                .buildAndExpand(link.getId())
+                .toUri();
     }
-    
-    @PostMapping("/links")
+
+    @PostMapping("")
     public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
     {
         String  password = linkRequest.getPassword(),
@@ -72,40 +65,35 @@ public class WebApiController {
         Link newLink = linkService.create(password, name, targetUrl);
         linkService.save(newLink);
 
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(newLink.getId())
-                .toUri();
-
         return ResponseEntity
-                .created(location)
+                .created(getLocation(newLink))
                 .body(linkService.toResponseDto(newLink));
     }
 
-    @GetMapping(value = "/links/{id}")
+    @GetMapping(value = "/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
         Optional<Link> optionalLink = linkService.findLinkById(id);
 
         if(optionalLink.isEmpty())
-            return NO_SUCH_LINK;
+            return noSuchLinkResponse();
         
         LinkResponse linkResponse = linkService.toResponseDto(optionalLink.get());
         return ResponseEntity.ok().body(linkResponse);
     }
 
 
-    @PatchMapping(value = "/links/{id}")
+    @PatchMapping(value = "/{id}")
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody LinkRequest linkRequest) {
         Optional<Link> optionalLink = linkService.findLinkById(id);
         if(optionalLink.isEmpty())
-            return NO_SUCH_LINK;
+            return noSuchLinkResponse();
 
         Link link = optionalLink.get();
         if(!link.hasPassword())
-            return LINK_HAS_NO_PASSWORD;
+            return linkHasNoPasswordResponse();
         if (!link.isPasswordCorrect(linkRequest.getPassword()))
-            return WRONG_PASSWORD;
+            return wrongPasswordResponse();
 
         String name = linkRequest.getName();
         String targetUrl = linkRequest.getTargetUrl();
@@ -119,21 +107,21 @@ public class WebApiController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping(value = "/links/{id}")
+    @DeleteMapping(value = "/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable String id,
                                         @RequestParam String password) {
         Optional<Link> optionalLink = linkService.findLinkById(id);
 
 
         if(optionalLink.isEmpty())
-            return NO_SUCH_LINK;
+            return noSuchLinkResponse();
 
         Link link = optionalLink.get();
 
         if(!link.hasPassword())
-            return LINK_HAS_NO_PASSWORD;
+            return linkHasNoPasswordResponse();
         if (!link.isPasswordCorrect(password))
-            return WRONG_PASSWORD;
+            return wrongPasswordResponse();
 
         linkService.delete(link);
         return ResponseEntity.noContent().build();

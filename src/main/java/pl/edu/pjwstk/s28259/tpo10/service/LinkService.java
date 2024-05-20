@@ -1,9 +1,12 @@
-package pl.edu.pjwstk.s28259.tpo10.model;
+package pl.edu.pjwstk.s28259.tpo10.service;
 
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
+import pl.edu.pjwstk.s28259.tpo10.model.Link;
+import pl.edu.pjwstk.s28259.tpo10.repository.LinkRepository;
 
 import java.security.SecureRandom;
 import java.util.List;
@@ -16,8 +19,11 @@ public class LinkService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int ID_LENGTH = 10;
 
-    @Value("${app.redirectPrefix}")
-    private String prefix;
+    @Value("${app.redirectPath}")
+    private String redirectPath;
+    @Value("${app.linksPath}")
+    private String linksPath;
+
     private final LinkRepository linkRepository;
 
     public LinkService(LinkRepository linkRepository) {
@@ -34,16 +40,21 @@ public class LinkService {
         return new Link(shortUrlId, password, name, targetUrl);
     }
 
-    public String getRedirectUrl(String shortUrlId){
-        return prefix + shortUrlId;
+    public String getRedirectUrl(String id){
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path(redirectPath + "/{id}")
+                .buildAndExpand(id)
+                .toUri()
+                .toString();
     }
 
     public LinkResponse toResponseDto(Link link){
+        String id = link.getId();
         return new LinkResponse(
-                link.getId(),
+                id,
                 link.getName(),
                 link.getTargetUrl(),
-                getRedirectUrl(link.getId()),
+                getRedirectUrl(id),
                 link.getVisits()
         );
     }

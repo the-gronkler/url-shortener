@@ -25,7 +25,7 @@ public class Link {
 
 
     public Link(){}
-    protected Link(String id, String password, String name, String targetUrl){
+    public Link(String id, String password, String name, String targetUrl){
 
         this.id = id;
         this.password = password;
@@ -54,7 +54,7 @@ public class Link {
         return id;
     }
 
-    protected void setId(String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
