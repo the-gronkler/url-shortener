@@ -1,5 +1,6 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
+@Tag(name = "Redirect API")
 @RequestMapping(
         path = "${app.redirectPath}"
 )
@@ -31,7 +33,7 @@ public class RedirectController {
                 .body(targetUrl.toString());
     }
 
-    @Tag(name = "GET", description = "Redirect to the target URL of the link with the given ID")
+    @Operation(summary = "redirect", description = "Redirect to the target URL of the link with the given ID")
     @GetMapping(value = "/{id}")
     public ResponseEntity<?> getLinkRedirect(@PathVariable String id) {
         Optional<Link> optionalLink = linkService.findLinkById(id);

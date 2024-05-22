@@ -1,7 +1,6 @@
 package pl.edu.pjwstk.s28259.tpo10.service;
 
 
-import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -12,6 +11,7 @@ import pl.edu.pjwstk.s28259.tpo10.repository.LinkRepository;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -19,8 +19,8 @@ import java.util.stream.StreamSupport;
 public class LinkService {
     public final static char[] POSSIBLE_CHARS =
             "qwertyuioplkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM".toCharArray();
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final int ID_LENGTH = 10;
+    private final Random RANDOM = new Random();
 
     @Value("${app.redirectPath}")
     private String redirectPath;
@@ -66,7 +66,7 @@ public class LinkService {
     }
 
 
-    private static String generateRandomId(){
+    private String generateRandomId(){
         StringBuilder sb = new StringBuilder(LinkService.ID_LENGTH);
         for(int i = 0; i < LinkService.ID_LENGTH; i++)
             sb.append(POSSIBLE_CHARS[RANDOM.nextInt(0, POSSIBLE_CHARS.length)]);

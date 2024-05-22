@@ -1,10 +1,13 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@Tag(name = "Links API")
 @RequestMapping(
         path = "${app.linksPath}"
         , produces = { MediaType.APPLICATION_JSON_VALUE}
@@ -69,7 +73,6 @@ public class LinksApiController {
         return objectMapper.treeToValue(patchedNode, Link.class);
     }
 
-
     private String extractParam(JsonMergePatch patch, String paramName) {
         JsonNode patchNode = objectMapper.convertValue(patch, JsonNode.class);
         JsonNode paramNode = patchNode.get(paramName);
@@ -78,7 +81,7 @@ public class LinksApiController {
                 : paramNode.asText();
     }
 
-    @Tag(name = "POST", description = "Add new link")
+    @Operation(summary = "Add new link")
     @PostMapping("")
     public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
     {
@@ -99,14 +102,14 @@ public class LinksApiController {
                 .body(linkService.toResponseDto(newLink));
     }
 
-    @Tag(name = "GET", description = "Get all links")
+    @Operation(summary = "get all links")
     @GetMapping("")
     public ResponseEntity<?> getAllLinks() {
         List<LinkResponse> linkResponses = linkService.getAllLinksAsDto();
         return ResponseEntity.ok().body(linkResponses);
     }
 
-    @Tag(name = "GET", description = "Get information about a link")
+    @Operation(summary = "get link by id")
     @GetMapping(value = "/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
         Optional<Link> optionalLink = linkService.findLinkById(id);
@@ -118,7 +121,7 @@ public class LinksApiController {
         return ResponseEntity.ok().body(linkResponse);
     }
 
-    @Tag(name = "DELETE", description = "Delete link if the link is password-protected and your password is correct.")
+    @Operation(summary = "delete link by id", description = "Delete link with the given id if the link is password-protected and your password is correct.")
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable String id,
                                         @RequestParam(required = false) String password) {
@@ -138,8 +141,18 @@ public class LinksApiController {
         return ResponseEntity.noContent().build();
     }
 
-    @Tag(name = "PATCH", description = "Update link data if the link is password-protected and your password is correct.")
+    @Operation(summary = "UPDATE", description = "Update link data if the link with the fiven id is password-protected and your password is correct.")
     @PatchMapping(value = "/{id}")
+    // I wanted to add some sort of info about what parameters to include in the jsonMergePatch, but it doesn't seem to be working
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "pass", value = "password to access link",
+                    required = true, dataType = "string", paramType = "body"),
+            @ApiImplicitParam(name = "id",        dataType = "string", paramType = "body"),
+            @ApiImplicitParam(name = "password",  dataType = "string", paramType = "body"),
+            @ApiImplicitParam(name = "name",      dataType = "string", paramType = "body"),
+            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body"),
+            @ApiImplicitParam(name = "visits",    dataType = "integer", paramType = "body"),
+    })
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody JsonMergePatch patch) {
         try {
