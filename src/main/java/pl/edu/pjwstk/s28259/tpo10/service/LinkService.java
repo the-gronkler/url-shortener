@@ -1,6 +1,7 @@
 package pl.edu.pjwstk.s28259.tpo10.service;
 
 
+import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -11,6 +12,8 @@ import pl.edu.pjwstk.s28259.tpo10.repository.LinkRepository;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @Service
 public class LinkService {
@@ -83,4 +86,16 @@ public class LinkService {
     public void delete(Link link) {
         linkRepository.delete(link);
     }
+
+    public Stream<Link> getAllLinksAsStream() {
+        Iterable<Link> links = linkRepository.findAll();
+        return StreamSupport.stream(links.spliterator(), false);
+    }
+
+    public List<LinkResponse> getAllLinksAsDto() {
+        return getAllLinksAsStream()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
 }

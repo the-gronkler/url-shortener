@@ -1,5 +1,10 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatchException;
+import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -13,6 +18,7 @@ import pl.edu.pjwstk.s28259.tpo10.model.Link;
 import pl.edu.pjwstk.s28259.tpo10.service.LinkService;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -25,9 +31,11 @@ public class LinksApiController {
     private String linksPath;
 
     private final LinkService linkService;
+    private final ObjectMapper objectMapper;
 
-    public LinksApiController(LinkService linkService) {
+    public LinksApiController(LinkService linkService, ObjectMapper objectMapper) {
         this.linkService = linkService;
+        this.objectMapper = objectMapper;
     }
     private ResponseEntity<?> noSuchLinkResponse() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -35,13 +43,13 @@ public class LinksApiController {
     private ResponseEntity<?> wrongPasswordResponse() {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .header("Reason", "wrong password")
+                .header("reason", "wrong password")
                 .build();
     }
     private ResponseEntity<?> linkHasNoPasswordResponse() {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .header("Reason", "This link is not password protected:  cannot edit")
+                .header("reason", "This link is not password protected:  cannot edit")
                 .build();
     }
 
@@ -51,6 +59,23 @@ public class LinksApiController {
                 .path(linksPath + "/{id}")
                 .buildAndExpand(link.getId())
                 .toUri();
+    }
+
+    private Link applyPatch(Link link, JsonMergePatch patch)
+            throws JsonPatchException, JsonProcessingException
+    {
+        JsonNode linkNode = objectMapper.valueToTree(link);
+        JsonNode patchedNode = patch.apply(linkNode);
+        return objectMapper.treeToValue(patchedNode, Link.class);
+    }
+
+
+    private String extractParam(JsonMergePatch patch, String paramName) {
+        JsonNode patchNode = objectMapper.convertValue(patch, JsonNode.class);
+        JsonNode paramNode = patchNode.get(paramName);
+        return paramNode == null
+                ? null
+                : paramNode.asText();
     }
 
     @Tag(name = "POST", description = "Add new link")
@@ -74,6 +99,13 @@ public class LinksApiController {
                 .body(linkService.toResponseDto(newLink));
     }
 
+    @Tag(name = "GET", description = "Get all links")
+    @GetMapping("")
+    public ResponseEntity<?> getAllLinks() {
+        List<LinkResponse> linkResponses = linkService.getAllLinksAsDto();
+        return ResponseEntity.ok().body(linkResponses);
+    }
+
     @Tag(name = "GET", description = "Get information about a link")
     @GetMapping(value = "/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
@@ -86,53 +118,53 @@ public class LinksApiController {
         return ResponseEntity.ok().body(linkResponse);
     }
 
-
-    @Tag(name = "PATCH", description = "Update link data if the link is password-protected and your password is correct.")
-    @PatchMapping(value = "/{id}")
-    public ResponseEntity<?> updateLink(@PathVariable String id,
-                                        @RequestBody LinkRequest linkRequest) {
-        Optional<Link> optionalLink = linkService.findLinkById(id);
-        if(optionalLink.isEmpty())
-            return noSuchLinkResponse();
-
-        Link link = optionalLink.get();
-        if(link.hasNoPassword())
-            return linkHasNoPasswordResponse();
-        if (link.isPasswordIncorrect(linkRequest.getPassword()))
-            return wrongPasswordResponse();
-
-        String name = linkRequest.getName();
-        String targetUrl = linkRequest.getTargetUrl();
-
-        if (name != null)
-            link.setName(name);
-        if (targetUrl != null)
-            link.setTargetUrl(targetUrl);
-
-        linkService.save(link);
-        return ResponseEntity.noContent().build();
-    }
-
-
     @Tag(name = "DELETE", description = "Delete link if the link is password-protected and your password is correct.")
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable String id,
-                                        @RequestParam String password) {
+                                        @RequestParam(required = false) String password) {
+
         Optional<Link> optionalLink = linkService.findLinkById(id);
-
-
         if(optionalLink.isEmpty())
             return noSuchLinkResponse();
 
         Link link = optionalLink.get();
-
         if(link.hasNoPassword())
             return linkHasNoPasswordResponse();
+
         if (link.isPasswordIncorrect(password))
             return wrongPasswordResponse();
 
         linkService.delete(link);
         return ResponseEntity.noContent().build();
+    }
+
+    @Tag(name = "PATCH", description = "Update link data if the link is password-protected and your password is correct.")
+    @PatchMapping(value = "/{id}")
+    public ResponseEntity<?> updateLink(@PathVariable String id,
+                                        @RequestBody JsonMergePatch patch) {
+        try {
+            Optional<Link> optionalLink = linkService.findLinkById(id);
+            if (optionalLink.isEmpty())
+                return noSuchLinkResponse();
+
+            Link link = optionalLink.get();
+            if (link.hasNoPassword())
+                return linkHasNoPasswordResponse();
+
+            String recievedPassword = extractParam(patch, "pass");
+            if (link.isPasswordIncorrect( recievedPassword ))
+                return wrongPasswordResponse();
+
+            Link patchedLink = applyPatch(link, patch);
+            linkService.save(patchedLink);
+
+            return ResponseEntity.noContent().build();
+
+        } catch (JsonPatchException | JsonProcessingException e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
     }
 }
 

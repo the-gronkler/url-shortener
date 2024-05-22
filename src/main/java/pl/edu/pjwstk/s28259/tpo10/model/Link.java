@@ -48,7 +48,7 @@ public class Link {
         return this.password.isEmpty();
     }
     public boolean isPasswordIncorrect(String password){
-        return !this.password.equals(password);
+        return this.password == null || ! this.password.equals(password);
     }
 
 
