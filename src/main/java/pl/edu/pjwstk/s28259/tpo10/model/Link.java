@@ -1,4 +1,5 @@
 package pl.edu.pjwstk.s28259.tpo10.model;
+import pl.edu.pjwstk.s28259.tpo10.service.LinkService;
 
 import jakarta.persistence.*;
 
@@ -25,8 +26,13 @@ public class Link {
 
 
     public Link(){}
-    public Link(String id, String password, String name, String targetUrl){
 
+
+    /**
+     * Do not use this constructor to create a new Link object.
+     * Use {@link LinkService#create(String, String, String)} instead.
+     */
+    public Link(String id, String password, String name, String targetUrl){
         this.id = id;
         this.password = password;
         this.name = name;
@@ -38,11 +44,11 @@ public class Link {
     public void incrementVisits(){
         this.visits++;
     }
-    public boolean hasPassword(){
-        return !this.password.isEmpty();
+    public boolean hasNoPassword(){
+        return this.password.isEmpty();
     }
-    public boolean isPasswordCorrect(String password){
-        return this.password.equals(password);
+    public boolean isPasswordIncorrect(String password){
+        return !this.password.equals(password);
     }
 
 

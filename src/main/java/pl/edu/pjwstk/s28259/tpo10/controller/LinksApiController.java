@@ -1,5 +1,6 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -40,23 +41,26 @@ public class LinksApiController {
     private ResponseEntity<?> linkHasNoPasswordResponse() {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .header("Reason", "This link is not password protected: cannot edit")
+                .header("Reason", "This link is not password protected:  cannot edit")
                 .build();
     }
 
     private URI getLocation(Link link) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
+        return ServletUriComponentsBuilder
+                .fromCurrentContextPath()
                 .path(linksPath + "/{id}")
                 .buildAndExpand(link.getId())
                 .toUri();
     }
 
+    @Tag(name = "POST", description = "Add new link")
     @PostMapping("")
     public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
     {
         String  password = linkRequest.getPassword(),
                 name = linkRequest.getName(),
                 targetUrl = linkRequest.getTargetUrl();
+
         if (name == null || targetUrl == null)
             return ResponseEntity.badRequest()
                     .body("Invalid data: name and targetUrl parameters must be provided");
@@ -70,6 +74,7 @@ public class LinksApiController {
                 .body(linkService.toResponseDto(newLink));
     }
 
+    @Tag(name = "GET", description = "Get information about a link")
     @GetMapping(value = "/{id}")
     public ResponseEntity<?> getLink(@PathVariable String id){
         Optional<Link> optionalLink = linkService.findLinkById(id);
@@ -82,6 +87,7 @@ public class LinksApiController {
     }
 
 
+    @Tag(name = "PATCH", description = "Update link data if the link is password-protected and your password is correct.")
     @PatchMapping(value = "/{id}")
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody LinkRequest linkRequest) {
@@ -90,9 +96,9 @@ public class LinksApiController {
             return noSuchLinkResponse();
 
         Link link = optionalLink.get();
-        if(!link.hasPassword())
+        if(link.hasNoPassword())
             return linkHasNoPasswordResponse();
-        if (!link.isPasswordCorrect(linkRequest.getPassword()))
+        if (link.isPasswordIncorrect(linkRequest.getPassword()))
             return wrongPasswordResponse();
 
         String name = linkRequest.getName();
@@ -107,6 +113,8 @@ public class LinksApiController {
         return ResponseEntity.noContent().build();
     }
 
+
+    @Tag(name = "DELETE", description = "Delete link if the link is password-protected and your password is correct.")
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable String id,
                                         @RequestParam String password) {
@@ -118,9 +126,9 @@ public class LinksApiController {
 
         Link link = optionalLink.get();
 
-        if(!link.hasPassword())
+        if(link.hasNoPassword())
             return linkHasNoPasswordResponse();
-        if (!link.isPasswordCorrect(password))
+        if (link.isPasswordIncorrect(password))
             return wrongPasswordResponse();
 
         linkService.delete(link);
