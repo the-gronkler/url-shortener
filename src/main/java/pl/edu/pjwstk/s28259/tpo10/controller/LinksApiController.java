@@ -74,14 +74,17 @@ public class LinksApiController {
     }
 
     private String extractParam(JsonMergePatch patch, String paramName) {
-        JsonNode patchNode = objectMapper.convertValue(patch, JsonNode.class);
-        JsonNode paramNode = patchNode.get(paramName);
+        JsonNode node =  objectMapper.convertValue(patch, JsonNode.class);
+        return extractParam(node, paramName);
+    }
+    private String extractParam(JsonNode node, String paramName) {
+        JsonNode paramNode = node.get(paramName);
         return paramNode == null
                 ? null
                 : paramNode.asText();
     }
 
-    @Operation(summary = "Add new link")
+    @Operation(summary = "add new link")
     @PostMapping("")
     public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
     {
@@ -141,43 +144,98 @@ public class LinksApiController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "UPDATE", description = "Update link data if the link with the fiven id is password-protected and your password is correct.")
+    @Operation(summary = "update link", description = "Update link data if the link with the given id is password-protected and your password is correct.")
     @PatchMapping(value = "/{id}")
     // I wanted to add some sort of info about what parameters to include in the jsonMergePatch, but it doesn't seem to be working
     @ApiImplicitParams({
             @ApiImplicitParam(name = "pass", value = "password to access link",
                     required = true, dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "id",        dataType = "string", paramType = "body"),
             @ApiImplicitParam(name = "password",  dataType = "string", paramType = "body"),
             @ApiImplicitParam(name = "name",      dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "visits",    dataType = "integer", paramType = "body"),
+            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body")
     })
     public ResponseEntity<?> updateLink(@PathVariable String id,
                                         @RequestBody JsonMergePatch patch) {
-        try {
-            Optional<Link> optionalLink = linkService.findLinkById(id);
-            if (optionalLink.isEmpty())
-                return noSuchLinkResponse();
 
-            Link link = optionalLink.get();
-            if (link.hasNoPassword())
-                return linkHasNoPasswordResponse();
+        Optional<Link> optionalLink = linkService.findLinkById(id);
+        if (optionalLink.isEmpty())
+            return noSuchLinkResponse();
 
-            String recievedPassword = extractParam(patch, "pass");
-            if (link.isPasswordIncorrect( recievedPassword ))
-                return wrongPasswordResponse();
+        Link link = optionalLink.get();
+        if (link.hasNoPassword())
+            return linkHasNoPasswordResponse();
 
-            Link patchedLink = applyPatch(link, patch);
-            linkService.save(patchedLink);
 
-            return ResponseEntity.noContent().build();
+        JsonNode node = objectMapper.convertValue(patch, JsonNode.class);
+        String recievedPass = extractParam(node, "pass");
+        if (link.isPasswordIncorrect(recievedPass))
+            return wrongPasswordResponse();
 
-        } catch (JsonPatchException | JsonProcessingException e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .build();
-        }
+        String newName = extractParam(node, "name");
+        String newTargetUrl = extractParam(node, "targetUrl");
+        String newPassword = extractParam(node, "password");
+
+        if (newName != null)
+            link.setName(newName);
+        if (newTargetUrl != null)
+            link.setTargetUrl(newTargetUrl);
+        if (newPassword != null)
+            link.setPassword(newPassword);
+
+        linkService.save(link);
+
+        return ResponseEntity.noContent().build();
+
     }
+
+
+//    @Operation(summary = "UPDATE", description = "Update link data if the link with the fiven id is password-protected and your password is correct.")
+//    @PatchMapping(value = "/{id}")
+//    // I wanted to add some sort of info about what parameters to include in the jsonMergePatch, but it doesn't seem to be working
+//    @ApiImplicitParams({
+//            @ApiImplicitParam(name = "pass", value = "password to access link",
+//                    required = true, dataType = "string", paramType = "body"),
+//            @ApiImplicitParam(name = "id",        dataType = "string", paramType = "body"),
+//            @ApiImplicitParam(name = "password",  dataType = "string", paramType = "body"),
+//            @ApiImplicitParam(name = "name",      dataType = "string", paramType = "body"),
+//            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body"),
+//            @ApiImplicitParam(name = "visits",    dataType = "integer", paramType = "body")
+//    })
+//    public ResponseEntity<?> updateLinkAllParams(@PathVariable String id,
+//                                        @RequestBody JsonMergePatch patch) {
+//        try {
+//            Optional<Link> optionalLink = linkService.findLinkById(id);
+//            if (optionalLink.isEmpty())
+//                return noSuchLinkResponse();
+//
+//            Link link = optionalLink.get();
+//            if (link.hasNoPassword())
+//                return linkHasNoPasswordResponse();
+//
+//            String recievedPass = extractParam(patch, "pass");
+//            if (link.isPasswordIncorrect(recievedPass))
+//                return wrongPasswordResponse();
+//
+//
+//            String newId = extractParam(patch, "id");
+//            if( newId != null
+//                && ! link.idEquals(newId)
+//                && linkService.existsWithId(id)
+//            )
+//                return ResponseEntity.badRequest().body("Invalid data: link with such id already exists");
+//
+//            Link patchedLink = applyPatch(link, patch);
+//            linkService.save(patchedLink);
+//
+//            return ResponseEntity.noContent().build();
+//
+//        }
+//        catch (JsonPatchException | JsonProcessingException e) {
+//            return ResponseEntity
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .build();
+//        }
+//    }
+
 }
 

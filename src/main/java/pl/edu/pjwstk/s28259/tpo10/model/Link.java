@@ -51,7 +51,9 @@ public class Link {
         return this.password == null || ! this.password.equals(password);
     }
 
-
+    public boolean idEquals(String id){
+        return this.id.equals(id);
+    }
 
 
 
