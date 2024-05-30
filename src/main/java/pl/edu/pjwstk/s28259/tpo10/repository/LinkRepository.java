@@ -13,6 +13,12 @@ public interface LinkRepository extends CrudRepository<Link, Integer> {
     @Query("SELECT l.id FROM Link l")
     List<String> findAllIds();
 
+    @Query("SELECT l.targetUrl FROM Link l")
+    List<String> findAllTargetUrls();
+
     Optional<Link> findLinkById(String id);
+
+
+    Optional<Link> findByTargetUrl(String targetUrl);
 }
 

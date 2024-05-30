@@ -3,17 +3,17 @@ package pl.edu.pjwstk.s28259.tpo10.dto;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
+import pl.edu.pjwstk.s28259.tpo10.validation.ValidPassword;
 
 public class LinkRequest {
     @Size(min = 5, max = 20, message = "Name must be between 5 and 20 characters")
     private String name;
 
-    @Pattern(regexp = "^https://.*", message = "URL must start with https://")
+    @Pattern(regexp = "^https://.*", message = "targetUrl is expected to be an HTTPS address: must start with https://")
     @URL(message = "Invalid URL")
     private String targetUrl;
 
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z]{2,})(?=.*\\d{3,})(?=.*[!@#$%^&*]{4,}).{10,}$",
-            message = "Password must have at least one lowercase letter, two uppercase letters, three digits, four special characters and be at least 10 characters long")
+    @ValidPassword
     private String password;
 
     public String getName() {

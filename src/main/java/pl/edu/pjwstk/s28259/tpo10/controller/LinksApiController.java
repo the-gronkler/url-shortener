@@ -9,6 +9,7 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,10 +19,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
 import pl.edu.pjwstk.s28259.tpo10.model.Link;
+import pl.edu.pjwstk.s28259.tpo10.service.DuplicateTargetUrlException;
 import pl.edu.pjwstk.s28259.tpo10.service.LinkService;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -86,7 +90,7 @@ public class LinksApiController {
 
     @Operation(summary = "add new link")
     @PostMapping("")
-    public ResponseEntity<?> addLink(@RequestBody LinkRequest linkRequest)
+    public ResponseEntity<?> addLink(@Valid @RequestBody LinkRequest linkRequest)
     {
         String  password = linkRequest.getPassword(),
                 name = linkRequest.getName(),
@@ -96,13 +100,24 @@ public class LinksApiController {
             return ResponseEntity.badRequest()
                     .body("Invalid data: name and targetUrl parameters must be provided");
 
+        try{
+            Link newLink = linkService.create(password, name, targetUrl);
+            linkService.save(newLink);
 
-        Link newLink = linkService.create(password, name, targetUrl);
-        linkService.save(newLink);
+            return ResponseEntity
+                    .created(getLocation(newLink))
+                    .body(linkService.toResponseDto(newLink));
+        }
+        catch (DuplicateTargetUrlException e) {
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("message", e.getMessage());
+            responseBody.put("existingLink", e.getLink());
 
-        return ResponseEntity
-                .created(getLocation(newLink))
-                .body(linkService.toResponseDto(newLink));
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(responseBody);
+        }
+
     }
 
     @Operation(summary = "get all links")
