@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create New Link</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h1 class="mt-5">Create New Link</h1>
+    <form action="#" th:action="@{/new}" th:object="${linkRequest}" method="post" class="mt-4">
+
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" th:field="*{name}" class="form-control">
+            <span th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="targetUrl">Target URL:</label>
+            <input type="text" id="targetUrl" th:field="*{targetUrl}" class="form-control">
+            <span th:if="${#fields.hasErrors('targetUrl')}" th:errors="*{targetUrl}" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" th:field="*{password}" class="form-control">
+            <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+
+    </form>
+</div>
+
+</body>
+</html>

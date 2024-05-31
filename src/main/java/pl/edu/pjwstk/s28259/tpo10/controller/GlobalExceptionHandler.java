@@ -1,5 +1,6 @@
 package pl.edu.pjwstk.s28259.tpo10.controller;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -35,4 +36,5 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
     }
+
 }

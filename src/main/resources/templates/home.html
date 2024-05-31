@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h1>All Links</h1>
+    <a href="/new" class="btn btn-primary mb-3">New Link</a>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Target URL</th>
+            <th>Redirect URL</th>
+            <th>Visits</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="link : ${links}">
+            <td th:text="${link.id}"></td>
+            <td th:text="${link.name}"></td>
+            <td th:text="${link.targetUrl}"></td>
+            <td th:text="${link.redirectUrl}"></td>
+            <td th:text="${link.visits}"></td>
+            <td>
+                <a th:href="@{/edit/{id}(id=${link.id})}" class="btn btn-warning">Edit</a>
+                <a th:href="@{/delete/{id}(id=${link.id})}" class="btn btn-danger">Delete</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

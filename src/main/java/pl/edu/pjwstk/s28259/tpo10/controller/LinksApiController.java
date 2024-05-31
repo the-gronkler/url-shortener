@@ -9,13 +9,20 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import pl.edu.pjwstk.s28259.tpo10.dto.LinkPatchRequest;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkResponse;
 import pl.edu.pjwstk.s28259.tpo10.dto.LinkRequest;
 import pl.edu.pjwstk.s28259.tpo10.model.Link;
@@ -23,10 +30,8 @@ import pl.edu.pjwstk.s28259.tpo10.service.DuplicateTargetUrlException;
 import pl.edu.pjwstk.s28259.tpo10.service.LinkService;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @Tag(name = "Links API")
@@ -40,10 +45,12 @@ public class LinksApiController {
 
     private final LinkService linkService;
     private final ObjectMapper objectMapper;
+    private final Validator validator;
 
-    public LinksApiController(LinkService linkService, ObjectMapper objectMapper) {
+    public LinksApiController(LinkService linkService, ObjectMapper objectMapper, Validator validator) {
         this.linkService = linkService;
         this.objectMapper = objectMapper;
+        this.validator = validator;
     }
     private ResponseEntity<?> noSuchLinkResponse() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -69,39 +76,18 @@ public class LinksApiController {
                 .toUri();
     }
 
-    private Link applyPatch(Link link, JsonMergePatch patch)
-            throws JsonPatchException, JsonProcessingException
-    {
-        JsonNode linkNode = objectMapper.valueToTree(link);
-        JsonNode patchedNode = patch.apply(linkNode);
-        return objectMapper.treeToValue(patchedNode, Link.class);
-    }
-
-    private String extractParam(JsonMergePatch patch, String paramName) {
-        JsonNode node =  objectMapper.convertValue(patch, JsonNode.class);
-        return extractParam(node, paramName);
-    }
-    private String extractParam(JsonNode node, String paramName) {
-        JsonNode paramNode = node.get(paramName);
-        return paramNode == null
-                ? null
-                : paramNode.asText();
-    }
-
     @Operation(summary = "add new link")
     @PostMapping("")
     public ResponseEntity<?> addLink(@Valid @RequestBody LinkRequest linkRequest)
     {
-        String  password = linkRequest.getPassword(),
-                name = linkRequest.getName(),
-                targetUrl = linkRequest.getTargetUrl();
 
-        if (name == null || targetUrl == null)
+
+        if (linkRequest.getName() == null || linkRequest.getTargetUrl() == null)
             return ResponseEntity.badRequest()
                     .body("Invalid data: name and targetUrl parameters must be provided");
 
         try{
-            Link newLink = linkService.create(password, name, targetUrl);
+            Link newLink = linkService.create(linkRequest);
             linkService.save(newLink);
 
             return ResponseEntity
@@ -161,17 +147,8 @@ public class LinksApiController {
 
     @Operation(summary = "update link", description = "Update link data if the link with the given id is password-protected and your password is correct.")
     @PatchMapping(value = "/{id}")
-    // I wanted to add some sort of info about what parameters to include in the jsonMergePatch, but it doesn't seem to be working
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "pass", value = "password to access link",
-                    required = true, dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "password",  dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "name",      dataType = "string", paramType = "body"),
-            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body")
-    })
     public ResponseEntity<?> updateLink(@PathVariable String id,
-                                        @RequestBody JsonMergePatch patch) {
-
+                                        @Valid @RequestBody LinkPatchRequest linkPatchRequest) {
         Optional<Link> optionalLink = linkService.findLinkById(id);
         if (optionalLink.isEmpty())
             return noSuchLinkResponse();
@@ -180,77 +157,13 @@ public class LinksApiController {
         if (link.hasNoPassword())
             return linkHasNoPasswordResponse();
 
-
-        JsonNode node = objectMapper.convertValue(patch, JsonNode.class);
-        String recievedPass = extractParam(node, "pass");
-        if (link.isPasswordIncorrect(recievedPass))
+        if (link.isPasswordIncorrect(linkPatchRequest.getPass()))
             return wrongPasswordResponse();
 
-        String newName = extractParam(node, "name");
-        String newTargetUrl = extractParam(node, "targetUrl");
-        String newPassword = extractParam(node, "password");
-
-        if (newName != null)
-            link.setName(newName);
-        if (newTargetUrl != null)
-            link.setTargetUrl(newTargetUrl);
-        if (newPassword != null)
-            link.setPassword(newPassword);
-
-        linkService.save(link);
+        linkService.updateLink(link, linkPatchRequest);
 
         return ResponseEntity.noContent().build();
 
     }
-
-
-//    @Operation(summary = "UPDATE", description = "Update link data if the link with the fiven id is password-protected and your password is correct.")
-//    @PatchMapping(value = "/{id}")
-//    // I wanted to add some sort of info about what parameters to include in the jsonMergePatch, but it doesn't seem to be working
-//    @ApiImplicitParams({
-//            @ApiImplicitParam(name = "pass", value = "password to access link",
-//                    required = true, dataType = "string", paramType = "body"),
-//            @ApiImplicitParam(name = "id",        dataType = "string", paramType = "body"),
-//            @ApiImplicitParam(name = "password",  dataType = "string", paramType = "body"),
-//            @ApiImplicitParam(name = "name",      dataType = "string", paramType = "body"),
-//            @ApiImplicitParam(name = "targetUrl", dataType = "string", paramType = "body"),
-//            @ApiImplicitParam(name = "visits",    dataType = "integer", paramType = "body")
-//    })
-//    public ResponseEntity<?> updateLinkAllParams(@PathVariable String id,
-//                                        @RequestBody JsonMergePatch patch) {
-//        try {
-//            Optional<Link> optionalLink = linkService.findLinkById(id);
-//            if (optionalLink.isEmpty())
-//                return noSuchLinkResponse();
-//
-//            Link link = optionalLink.get();
-//            if (link.hasNoPassword())
-//                return linkHasNoPasswordResponse();
-//
-//            String recievedPass = extractParam(patch, "pass");
-//            if (link.isPasswordIncorrect(recievedPass))
-//                return wrongPasswordResponse();
-//
-//
-//            String newId = extractParam(patch, "id");
-//            if( newId != null
-//                && ! link.idEquals(newId)
-//                && linkService.existsWithId(id)
-//            )
-//                return ResponseEntity.badRequest().body("Invalid data: link with such id already exists");
-//
-//            Link patchedLink = applyPatch(link, patch);
-//            linkService.save(patchedLink);
-//
-//            return ResponseEntity.noContent().build();
-//
-//        }
-//        catch (JsonPatchException | JsonProcessingException e) {
-//            return ResponseEntity
-//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .build();
-//        }
-//    }
-
 }
 
